@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tools2fast-fastapi"
+version = "0.1.0"
+description = "Shared tools, mixins, and base services for FastAPI applications - Solautyc Team internal use"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Angel Daniel Sanchez Castillo", email = "angeldaniel.sanchezcastillo@gmail.com"}
+]
+keywords = ["fastapi", "tools", "mixins", "services", "sqlmodel"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "fastapi>=0.100.0",
+    "sqlmodel>=0.0.16",
+    # Add other common dependencies if needed
+]
+
+[dependency-groups]
+dev = [
+    "black",
+    "ruff",
+    "mypy>=1.0.0",
+    "build",
+    "twine",
+    "pre-commit",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.24.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/AngelDanielSanchezCastillo/tools2fast-fastapi"
+Documentation = "https://github.com/AngelDanielSanchezCastillo/tools2fast-fastapi/tree/main/docs"
+Repository = "https://github.com/AngelDanielSanchezCastillo/tools2fast-fastapi"
+Issues = "https://github.com/AngelDanielSanchezCastillo/tools2fast-fastapi/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["tools2fast_fastapi*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
