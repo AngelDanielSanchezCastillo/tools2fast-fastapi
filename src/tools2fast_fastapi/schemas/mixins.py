@@ -21,3 +21,15 @@ class AuditMixin(SQLModel):
 
     created_by: int | None = None
     updated_by: int | None = None
+
+
+class NumberMixin(SQLModel):
+    """Schema mixin for resources that use a continuous sequence number."""
+
+    number: int
+
+
+class RevisionMixin(NumberMixin):
+    """Schema mixin for resources that include a revision number."""
+
+    revision: int
