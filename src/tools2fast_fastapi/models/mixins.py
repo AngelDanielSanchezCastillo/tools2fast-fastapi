@@ -54,6 +54,16 @@ class NumberMixin:
 
     number: int = Field(index=True)
 
+class NumberUniqueMixin:
+    """
+    Mixin para proveer un campo `number` que actúa como un identificador único 
+    independiente de la clave primaria (ID).
+    
+    Sirve para mostrar un número de registro humano-legible (ej. "Cotización #123"),
+    """
+
+    number: int = Field(index=True, unique=True)
+
 class RevisionMixin(NumberMixin):
     """
     Mixin reutilizable para cualquier tabla SQLModel que necesite versionado.
