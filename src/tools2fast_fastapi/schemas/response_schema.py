@@ -239,6 +239,34 @@ class APIResponse:
         return JSONResponse(status_code=status_code, content=body.model_dump())
 
     @staticmethod
+    def payment_required(
+        message: str = "Pago Requerido",
+        *,
+        error: str | dict | None = None,
+    ) -> JSONResponse:
+        """Error 402 explícito cuando el usuario debe realizar un pago.
+
+        Args:
+            message:     Mensaje legible para el usuario.
+            error:       Detalle opcional: ``str`` o ``{"type": …, "detail": …}``.
+
+        Example::
+
+            return APIResponse.payment_required()
+        """
+        error_detail: ErrorDetail | None = None
+        if error is not None:
+            if isinstance(error, dict):
+                error_detail = ErrorDetail(**error)
+            else:
+                error_detail = ErrorDetail(type="PaymentRequired", detail=str(error))
+
+        body = ErrorResponse(message=message, error=error_detail)
+        return JSONResponse(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED, content=body.model_dump()
+        )
+
+    @staticmethod
     def from_exception(
         exc: Exception,
         *,
