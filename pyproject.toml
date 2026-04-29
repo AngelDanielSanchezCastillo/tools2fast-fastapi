@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tools2fast-fastapi"
-version = "0.1.5"
+version = "0.2.0"
 description = "Shared tools, mixins, and base services for FastAPI applications - Solautyc Team internal use"
 readme = "README.md"
 requires-python = ">=3.10"
