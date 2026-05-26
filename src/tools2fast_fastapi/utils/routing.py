@@ -30,7 +30,8 @@ def handle_exceptions(func: Callable) -> Callable:
         try:
             return await func(*args, **kwargs)
         except Exception as exc:
-            return APIResponse.from_exception(exc)
+            error_response, http_status = APIResponse.from_exception(exc)
+            return JSONResponse(status_code=http_status, content=error_response.model_dump())
 
     return wrapper
 
