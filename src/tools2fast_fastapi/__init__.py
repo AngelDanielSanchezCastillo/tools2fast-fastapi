@@ -1,4 +1,4 @@
-from .models.mixins import AuditMixin, IdMixin, TimestampMixin, NumberUniqueMixin, RevisionMixin, NumberMixin
+from .models.mixins import AuditMixin, AuditTimestampMixin, IdMixin, TimestampMixin, NumberUniqueMixin, RevisionMixin, NumberMixin
 from .services import DocumentSimpleRevisionService, DocumentWithItemsRevisionService, TransactionService
 from .schemas import (
     APIResponse,
@@ -18,6 +18,7 @@ from .__version__ import __version__
 
 __all__ = [
     # Model mixins
+    "AuditTimestampMixin",
     "IdMixin",
     "TimestampMixin",
     "AuditMixin",
