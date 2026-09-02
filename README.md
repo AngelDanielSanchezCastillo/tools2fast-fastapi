@@ -2,6 +2,8 @@
 
 Shared tools, mixins, and base services for FastAPI applications. Designed for internal use by the Solautyc Team to standardize model definitions and common services across multiple packages.
 
+> 📖 **Conventions reference**: this package follows the [2fast-handbook](https://github.com/AngelDanielSanchezCastillo/2fast-handbook) for ecosystem conventions (structure, versioning, README, commits, release).
+
 ## Installation
 
 You can install this package from PyPI (if published) or use it locally within your workspace:
