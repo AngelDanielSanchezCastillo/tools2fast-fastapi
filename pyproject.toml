@@ -65,6 +65,11 @@ include = ["tools2fast_fastapi*"]
 [tool.setuptools.dynamic]
 version = {attr = "tools2fast_fastapi.__version__.__version__"}
 
+[tool.setuptools.package-data]
+tools2fast_fastapi = [
+    "skills/*.md",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
