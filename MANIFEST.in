@@ -1,8 +1,9 @@
 include README.md
 include LICENSE
 recursive-include docs *.md *.example
-recursive-include examples *.py
-recursive-include src/tools2fast_fastapi *.py *.html
+recursive-include examples *.py *.example *.json
+recursive-include src/tools2fast_fastapi *.py *.html *.json *.md
+
 global-exclude __pycache__
 global-exclude *.py[co]
 global-exclude .DS_Store
