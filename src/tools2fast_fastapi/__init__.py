@@ -2,6 +2,8 @@ from .models.mixins import AuditMixin, AuditTimestampMixin, IdMixin, TimestampMi
 from .services import DocumentSimpleRevisionService, DocumentWithItemsRevisionService, TransactionService
 from .schemas import (
     APIResponse,
+    AuthError,
+    install_auth_error_handler,
     BaseSuccessResponse,
     BaseControlledErrorResponse,
     BaseUnexpectedErrorResponse,
@@ -27,6 +29,8 @@ __all__ = [
     "NumberMixin",
     # Response models
     "APIResponse",
+    "AuthError",
+    "install_auth_error_handler",
     "BaseSuccessResponse",
     "BaseControlledErrorResponse",
     "BaseUnexpectedErrorResponse",

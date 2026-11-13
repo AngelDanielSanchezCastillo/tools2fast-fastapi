@@ -13,6 +13,8 @@ from .mixins import (
 )
 from .response_schema import (
     APIResponse,
+    AuthError,
+    install_auth_error_handler,
     BaseSuccessResponse,
     BaseControlledErrorResponse,
     BaseUnexpectedErrorResponse,
@@ -41,6 +43,8 @@ __all__ = [
     "PaymentRequiredMixin",
     # Response models
     "APIResponse",
+    "AuthError",
+    "install_auth_error_handler",
     "BaseSuccessResponse",
     "BaseControlledErrorResponse",
     "BaseUnexpectedErrorResponse",

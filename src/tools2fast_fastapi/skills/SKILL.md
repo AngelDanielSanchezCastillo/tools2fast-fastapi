@@ -4,7 +4,7 @@ description: "Trigger: working on or with tools2fast-fastapi. Shared base layer 
 license: MIT
 metadata:
   author: AngelDanielSanchezCastillo
-  version: "1.0"
+  version: "1.2"
 ---
 
 ## Purpose
@@ -48,6 +48,14 @@ automation, and revision/document services. No settings module by design.
 
 - Spanish response messages ("Éxito", "Guardado con éxito", "Ha ocurrido un error", "Pago requerido").
 - All `error_type` values are Literals — only the three above exist.
+- `APIResponse.auth_error(...)` (0.3.14+) returns a ready-to-return `JSONResponse`
+  with the project envelope and, for 401, the RFC 6750 `WWW-Authenticate` header.
+  It does NOT add a new `error_type`; the discriminator lives in `error.type`.
+- Dependencies cannot short-circuit by returning a `Response` (FastAPI injects
+  it as the dependency value). Raise `AuthError(...)` and call
+  `install_auth_error_handler(app)` once at startup (0.3.14+) instead.
+  `AuthError` subclasses `HTTPException`, so a missing handler still yields the
+  correct status and challenge (only the body shape falls back to `detail`).
 
 ## Stale docs
 
