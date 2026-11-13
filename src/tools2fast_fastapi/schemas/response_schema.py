@@ -15,18 +15,96 @@ Factoría:
 from __future__ import annotations
 
 import logging
-from typing import Any, Generic, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar
 
+from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from fastapi import status
 
 from tools2fast_fastapi.schemas.mixins import (
     ErrorDetail,
 )
 
+if TYPE_CHECKING:
+    from fastapi import FastAPI
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUTH ERROR — excepción para dependencies
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class AuthError(HTTPException):
+    """Authentication/authorization failure raised from FastAPI dependencies.
+
+    Dependencies cannot return a ``Response`` to short-circuit the endpoint
+    (FastAPI injects it as the dependency value instead). Raising this
+    exception, together with :func:`install_auth_error_handler`, produces the
+    same envelope and RFC 6750 challenge as :meth:`APIResponse.auth_error`.
+
+    It subclasses :class:`fastapi.HTTPException` on purpose: if an application
+    forgets to install the handler, the status code and ``WWW-Authenticate``
+    header are still correct (the body falls back to FastAPI's ``detail``
+    shape instead of becoming a 500).
+
+    Attributes:
+        status_code: HTTP status (usually 401 or 403).
+        error_code: Stable discriminator stored in ``error.type``.
+        message: User-facing message (Spanish).
+        www_authenticate: Optional ``WWW-Authenticate`` value. Defaults to
+            ``Bearer`` for 401 responses.
+    """
+
+    def __init__(
+        self,
+        *,
+        error_code: str,
+        message: str,
+        status_code: int = status.HTTP_401_UNAUTHORIZED,
+        www_authenticate: str | None = None,
+    ) -> None:
+        headers: dict[str, str] = {}
+        if www_authenticate is not None or status_code == status.HTTP_401_UNAUTHORIZED:
+            headers["WWW-Authenticate"] = www_authenticate or "Bearer"
+
+        self.error_code = error_code
+        self.message = message
+        self.www_authenticate = www_authenticate
+        super().__init__(
+            status_code=status_code,
+            detail=message,
+            headers=headers or None,
+        )
+
+
+def install_auth_error_handler(app: FastAPI) -> None:
+    """Register the ``AuthError`` handler on a FastAPI application.
+
+    Call once during app startup, before serving requests:
+
+    .. code-block:: python
+
+        from tools2fast_fastapi import install_auth_error_handler
+
+        app = FastAPI()
+        install_auth_error_handler(app)
+
+    Args:
+        app: The FastAPI application instance.
+    """
+
+    @app.exception_handler(AuthError)
+    async def _handle_auth_error(_request, exc: AuthError) -> JSONResponse:
+        return APIResponse.auth_error(
+            error_code=exc.error_code,
+            message=exc.message,
+            status_code=exc.status_code,
+            www_authenticate=exc.www_authenticate,
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -265,6 +343,57 @@ class APIResponse:
         """
         error_detail = ErrorDetail(type="ControlledError", detail=message)
         return BaseControlledErrorResponse(message=message, error=error_detail), status_code
+
+    @staticmethod
+    def auth_error(
+        *,
+        error_code: str,
+        message: str,
+        status_code: int = status.HTTP_401_UNAUTHORIZED,
+        www_authenticate: str | None = None,
+    ) -> JSONResponse:
+        """Error de autenticación/autorización listo para retornar.
+
+        Construye un :class:`~fastapi.responses.JSONResponse` con el envelope
+        del proyecto y, cuando aplica, el header RFC 6750
+        ``WWW-Authenticate``.
+
+        Args:
+            error_code: Discriminador estable que viaja en ``error.type``
+                (por ejemplo ``"TokenExpired"``, ``"PermissionDenied"``).
+                El frontend discrimina por este valor, nunca por el mensaje.
+            message: Mensaje legible para el usuario (español).
+            status_code: Código HTTP. Por defecto ``401``.
+            www_authenticate: Valor del header ``WWW-Authenticate``. Si el
+                status es ``401`` y se omite, se usa ``"Bearer"``. Para
+                statuses distintos de ``401`` se omite salvo que se pase
+                explícitamente.
+
+        Returns:
+            ``JSONResponse`` con el envelope del proyecto y los headers
+            correspondientes.
+
+        Example::
+
+            return APIResponse.auth_error(
+                error_code="TokenExpired",
+                message="Token expirado",
+                www_authenticate='Bearer error="expired_token"',
+            )
+        """
+        error_detail = ErrorDetail(type=error_code, detail=message)
+        body = BaseControlledErrorResponse(message=message, error=error_detail)
+
+        headers: dict[str, str] = {}
+        is_unauthorized = status_code == status.HTTP_401_UNAUTHORIZED
+        if www_authenticate is not None or is_unauthorized:
+            headers["WWW-Authenticate"] = www_authenticate or "Bearer"
+
+        return JSONResponse(
+            status_code=status_code,
+            content=body.model_dump(),
+            headers=headers,
+        )
 
     @staticmethod
     def payment_required(
