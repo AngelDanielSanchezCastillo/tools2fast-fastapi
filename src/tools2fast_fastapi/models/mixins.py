@@ -1,13 +1,88 @@
 from datetime import datetime, timezone
+from uuid import UUID
+import time
+import secrets
 
 from sqlalchemy import DateTime, func, event
 from sqlmodel import BigInteger, Field
 
 
+def uuid7() -> UUID:
+    """
+    Generate a UUID version 7 (time-ordered).
+    
+    UUID v7 structure (RFC 9562):
+    - 48 bits: Unix timestamp in milliseconds
+    - 4 bits: version (0111 = 7)
+    - 12 bits: random
+    - 2 bits: variant (10)
+    - 62 bits: random
+    
+    Returns:
+        UUID version 7
+    """
+    import os
+    
+    # Get current timestamp in milliseconds (48 bits)
+    timestamp_ms = int(time.time() * 1000) & 0xFFFFFFFFFFFF
+    
+    # Generate 10 bytes of random data (80 bits)
+    random_bytes = os.urandom(10)
+    random_int = int.from_bytes(random_bytes, 'big')
+    
+    # Construct the UUID (128 bits total)
+    # Bits 0-47: timestamp (48 bits)
+    # Bits 48-51: version (4 bits) = 0111
+    # Bits 52-63: random (12 bits)
+    # Bits 64-65: variant (2 bits) = 10
+    # Bits 66-127: random (62 bits)
+    
+    # Start with timestamp in the high 48 bits
+    uuid_int = timestamp_ms << 80
+    
+    # Add version (0111) at bits 48-51
+    uuid_int |= (0b0111 << 76)
+    
+    # Add random bits at bits 52-63 (12 bits)
+    uuid_int |= (random_int & 0xFFF) << 64
+    
+    # Add variant (10) at bits 64-65
+    uuid_int |= (0b10 << 62)
+    
+    # Add random bits at bits 66-127 (62 bits)
+    uuid_int |= (random_int >> 12) & 0x3FFFFFFFFFFFFFFF
+    
+    return UUID(int=uuid_int)
+
+
 class IdMixin:
-    """Mixin para proveer clave primaria autoincremental tipo BigInteger."""
+    """
+    DEPRECATED: Use UUIDIdMixin instead.
+    
+    Mixin para proveer clave primaria autoincremental tipo BigInteger.
+    
+    .. deprecated:: 0.4.0
+        Use :class:`UUIDIdMixin` for new models. IdMixin will be removed in a future version.
+    """
+
+    def __init_subclass__(cls, **kwargs):
+        """Emit deprecation warning when subclassed."""
+        import warnings
+        warnings.warn(
+            "IdMixin is deprecated and will be removed in a future version. "
+            "Use UUIDIdMixin instead for UUID v7 primary keys.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init_subclass__(**kwargs)
 
     id: int | None = Field(default=None, primary_key=True, index=True, sa_type=BigInteger)
+
+
+class UUIDIdMixin:
+    """Mixin para proveer clave primaria tipo UUID v7 (time-ordered)."""
+
+    id: UUID = Field(default_factory=uuid7, primary_key=True, index=True)
 
 
 class TimestampMixin:
@@ -29,18 +104,47 @@ class TimestampMixin:
 class AuditMixin:
     """Mixin para rastrear el usuario que crea y actualiza un registro."""
 
-    created_by: int | None = Field(
+    created_by: UUID | None = Field(
         default=None,
         index=True,
         description="ID of the user who created this record.",
-        sa_type=BigInteger,
     )
-    updated_by: int | None = Field(
+    updated_by: UUID | None = Field(
         default=None,
         index=True,
         description="ID of the user who last updated this record.",
-        sa_type=BigInteger,
     )
+
+
+class SoftDeleteMixin:
+    """
+    Mixin para borrado lógico (soft delete).
+    
+    Agrega:
+      - deleted_at (datetime | None): Timestamp de cuándo se borró el registro.
+      - deleted_by (UUID | None): ID del usuario que borró el registro.
+    
+    Uso:
+        class MyModel(UUIDIdMixin, TimestampMixin, SoftDeleteMixin, SQLModel, table=True):
+            __tablename__ = "my_models"
+            name: str = Field()
+    
+    El registro se considera "borrado" cuando deleted_at no es None.
+    Para filtrar registros activos, usar active_only(query).
+    Para filtrar registros borrados, usar deleted_only(query).
+    """
+
+    deleted_at: datetime | None = Field(
+        default=None,
+        index=True,
+        description="Timestamp when the record was soft-deleted. None means active.",
+        sa_type=DateTime(timezone=True),
+    )
+    deleted_by: UUID | None = Field(
+        default=None,
+        description="ID of the user who soft-deleted this record.",
+    )
+
 
 class NumberMixin:
     """

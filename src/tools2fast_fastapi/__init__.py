@@ -1,5 +1,6 @@
-from .models.mixins import AuditMixin, AuditTimestampMixin, IdMixin, TimestampMixin, NumberUniqueMixin, RevisionMixin, NumberMixin
+from .models.mixins import AuditMixin, AuditTimestampMixin, IdMixin, UUIDIdMixin, TimestampMixin, NumberUniqueMixin, RevisionMixin, NumberMixin, SoftDeleteMixin
 from .services import DocumentSimpleRevisionService, DocumentWithItemsRevisionService, TransactionService
+from .services.soft_delete import soft_delete, restore, active_only, deleted_only
 from .schemas import (
     APIResponse,
     AuthError,
@@ -22,11 +23,18 @@ __all__ = [
     # Model mixins
     "AuditTimestampMixin",
     "IdMixin",
+    "UUIDIdMixin",
     "TimestampMixin",
     "AuditMixin",
     "NumberUniqueMixin",
     "RevisionMixin",
     "NumberMixin",
+    "SoftDeleteMixin",
+    # Soft-delete functions
+    "soft_delete",
+    "restore",
+    "active_only",
+    "deleted_only",
     # Response models
     "APIResponse",
     "AuthError",

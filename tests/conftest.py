@@ -5,6 +5,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 # Import testing dummy models to ensure they are picked up in metadata
 from tests.test_revision_service import DocumentHeader, DocumentItem
+from tests.test_uuid_soft_delete_mixins import TestModel, TestSoftDeleteModel, TestAuditModel, TestSoftDeleteWithAuditModel
 
 from sqlalchemy.pool import StaticPool
 
