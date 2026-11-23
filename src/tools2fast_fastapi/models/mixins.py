@@ -1,13 +1,38 @@
 from datetime import datetime, timezone
+from uuid import UUID, uuid7
 
 from sqlalchemy import DateTime, func, event
 from sqlmodel import BigInteger, Field
 
 
 class IdMixin:
-    """Mixin para proveer clave primaria autoincremental tipo BigInteger."""
+    """
+    DEPRECATED: Use UUIDIdMixin instead.
+    
+    Mixin para proveer clave primaria autoincremental tipo BigInteger.
+    
+    .. deprecated:: 0.4.0
+        Use :class:`UUIDIdMixin` for new models. IdMixin will be removed in a future version.
+    """
+
+    def __init_subclass__(cls, **kwargs):
+        """Emit deprecation warning when subclassed."""
+        import warnings
+        warnings.warn(
+            "IdMixin is deprecated and will be removed in a future version. "
+            "Use UUIDIdMixin instead for UUID v7 primary keys.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init_subclass__(**kwargs)
 
     id: int | None = Field(default=None, primary_key=True, index=True, sa_type=BigInteger)
+
+
+class UUIDIdMixin:
+    """Mixin para proveer clave primaria tipo UUID v7 (time-ordered)."""
+
+    id: UUID = Field(default_factory=uuid7, primary_key=True, index=True)
 
 
 class TimestampMixin:
@@ -29,18 +54,47 @@ class TimestampMixin:
 class AuditMixin:
     """Mixin para rastrear el usuario que crea y actualiza un registro."""
 
-    created_by: int | None = Field(
+    created_by: UUID | None = Field(
         default=None,
         index=True,
         description="ID of the user who created this record.",
-        sa_type=BigInteger,
     )
-    updated_by: int | None = Field(
+    updated_by: UUID | None = Field(
         default=None,
         index=True,
         description="ID of the user who last updated this record.",
-        sa_type=BigInteger,
     )
+
+
+class SoftDeleteMixin:
+    """
+    Mixin para borrado lógico (soft delete).
+    
+    Agrega:
+      - deleted_at (datetime | None): Timestamp de cuándo se borró el registro.
+      - deleted_by (UUID | None): ID del usuario que borró el registro.
+    
+    Uso:
+        class MyModel(UUIDIdMixin, TimestampMixin, SoftDeleteMixin, SQLModel, table=True):
+            __tablename__ = "my_models"
+            name: str = Field()
+    
+    El registro se considera "borrado" cuando deleted_at no es None.
+    Para filtrar registros activos, usar active_only(query).
+    Para filtrar registros borrados, usar deleted_only(query).
+    """
+
+    deleted_at: datetime | None = Field(
+        default=None,
+        index=True,
+        description="Timestamp when the record was soft-deleted. None means active.",
+        sa_type=DateTime(timezone=True),
+    )
+    deleted_by: UUID | None = Field(
+        default=None,
+        description="ID of the user who soft-deleted this record.",
+    )
+
 
 class NumberMixin:
     """

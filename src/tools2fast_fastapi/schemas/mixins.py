@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel
 from sqlmodel import SQLModel
@@ -98,9 +99,22 @@ class PaymentRequiredMixin(BaseModel):
 
 
 class IdMixin(SQLModel):
-    """Schema mixin para recursos que tienen un ID entero."""
+    """
+    DEPRECATED: Use UUIDIdMixin instead.
+    
+    Schema mixin para recursos que tienen un ID entero.
+    
+    .. deprecated:: 0.4.0
+        Use :class:`UUIDIdMixin` for new schemas. IdMixin will be removed in a future version.
+    """
 
     id: int
+
+
+class UUIDIdMixin(SQLModel):
+    """Schema mixin para recursos que tienen un ID UUID."""
+
+    id: UUID
 
 
 class TimestampMixin(SQLModel):
@@ -113,8 +127,15 @@ class TimestampMixin(SQLModel):
 class AuditMixin(SQLModel):
     """Schema mixin para recursos que incluyen IDs de usuario auditables."""
 
-    created_by: int | None = None
-    updated_by: int | None = None
+    created_by: UUID | None = None
+    updated_by: UUID | None = None
+
+
+class SoftDeleteMixin(SQLModel):
+    """Schema mixin para recursos que incluyen campos de borrado lógico."""
+
+    deleted_at: datetime | None = None
+    deleted_by: UUID | None = None
 
 
 class NumberMixin(SQLModel):
