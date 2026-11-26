@@ -3,9 +3,10 @@ Utilidades compartidas para los routers de tenant.
 """
 
 import functools
+import inspect
 from typing import Any, Callable
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.types import DecoratedCallable
 from .. import APIResponse
@@ -13,8 +14,14 @@ from .. import APIResponse
 
 def handle_exceptions(func: Callable) -> Callable:
     """
-    Decorator que envuelve un endpoint async y convierte cualquier excepción
-    en una ``JSONResponse`` estándar usando ``APIResponse.from_exception``.
+    Decorator que envuelve un endpoint (sync o async) y convierte cualquier
+    excepción inesperada en una ``JSONResponse`` estándar usando
+    ``APIResponse.from_exception``.
+
+    - Soportar endpoints ``def`` (sync) además de ``async def``: sólo se hace
+      ``await`` cuando el resultado es awaitable.
+    - ``HTTPException`` se re-lanza tal cual para que FastAPI preserve su
+      código de estado (401/403/404/...) en lugar de convertirlo en 500.
 
     Uso::
 
@@ -26,9 +33,14 @@ def handle_exceptions(func: Callable) -> Callable:
     """
 
     @functools.wraps(func)
-    async def wrapper(*args, **kwargs) -> JSONResponse:
+    async def wrapper(*args, **kwargs) -> Any:
         try:
-            return await func(*args, **kwargs)
+            result = func(*args, **kwargs)
+            if inspect.isawaitable(result):
+                result = await result
+            return result
+        except HTTPException:
+            raise
         except Exception as exc:
             error_response, http_status = APIResponse.from_exception(exc)
             return JSONResponse(status_code=http_status, content=error_response.model_dump())
