@@ -13,78 +13,74 @@ SQLModelType = TypeVar("SQLModelType", bound=SQLModel)
 
 async def soft_delete(
     session: AsyncSession,
-    model_cls: type[SQLModelType],
-    id: UUID,
-    deleted_by: UUID,
+    model_cls: "type[SQLModelType] | SQLModelType",
+    id: UUID | None = None,
+    deleted_by: UUID | None = None,
 ) -> None:
     """
     Mark a record as soft-deleted.
-    
-    Sets deleted_at to current timestamp and deleted_by to the provided user ID.
-    
-    Args:
-        session: Async database session
-        model_cls: SQLModel class to delete
-        id: UUID of the record to delete
-        deleted_by: UUID of the user performing the deletion
-    
+
+    Two supported call shapes (backward compatible):
+      - ``soft_delete(session, Model, id, deleted_by)``  (by class + id)
+      - ``soft_delete(session, instance)``               (by live instance)
+
+    Sets ``deleted_at`` to now and ``deleted_by`` when provided.
+
     Raises:
         ValueError: If the record does not exist or is already deleted
     """
-    # Fetch the record
-    record = await session.get(model_cls, id)
-    if record is None:
-        raise ValueError(f"{model_cls.__name__} with id {id} not found")
-    
+    if isinstance(model_cls, type):
+        record = await session.get(model_cls, id)
+        name = model_cls.__name__
+        if record is None:
+            raise ValueError(f"{name} with id {id} not found")
+    else:
+        record = model_cls
+        name = type(record).__name__
+
     # Check if already deleted
     if hasattr(record, "deleted_at") and record.deleted_at is not None:
-        raise ValueError(f"{model_cls.__name__} with id {id} is already deleted")
-    
+        raise ValueError(f"{name} is already deleted")
+
     # Mark as deleted
     record.deleted_at = datetime.now(timezone.utc)
-    record.deleted_by = deleted_by
-    
+    if deleted_by is not None:
+        record.deleted_by = deleted_by
+
     session.add(record)
     await session.commit()
 
 
 async def restore(
     session: AsyncSession,
-    model_cls: type[SQLModelType],
-    id: UUID,
-    restored_by: UUID,
+    model_cls: "type[SQLModelType] | SQLModelType",
+    id: UUID | None = None,
+    restored_by: UUID | None = None,
 ) -> None:
     """
     Restore a soft-deleted record.
-    
-    Sets deleted_at and deleted_by to None, and updates updated_by to the restorer.
-    
-    Args:
-        session: Async database session
-        model_cls: SQLModel class to restore
-        id: UUID of the record to restore
-        restored_by: UUID of the user performing the restoration
-    
-    Raises:
-        ValueError: If the record does not exist or is not deleted
+
+    Two supported call shapes (backward compatible):
+      - ``restore(session, Model, id, restored_by)``
+      - ``restore(session, instance)``
     """
-    # Fetch the record
-    record = await session.get(model_cls, id)
-    if record is None:
-        raise ValueError(f"{model_cls.__name__} with id {id} not found")
-    
-    # Check if actually deleted
+    if isinstance(model_cls, type):
+        record = await session.get(model_cls, id)
+        name = model_cls.__name__
+        if record is None:
+            raise ValueError(f"{name} with id {id} not found")
+    else:
+        record = model_cls
+        name = type(record).__name__
+
     if not hasattr(record, "deleted_at") or record.deleted_at is None:
-        raise ValueError(f"{model_cls.__name__} with id {id} is not deleted")
-    
-    # Restore the record
+        raise ValueError(f"{name} is not deleted")
+
     record.deleted_at = None
     record.deleted_by = None
-    
-    # Update updated_by to track who restored it
-    if hasattr(record, "updated_by"):
+    if getattr(record, "updated_by", None) is not None:
         record.updated_by = restored_by
-    
+
     session.add(record)
     await session.commit()
 

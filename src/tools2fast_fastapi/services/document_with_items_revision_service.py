@@ -194,5 +194,11 @@ class DocumentWithItemsRevisionService(Generic[HeaderT, ItemT]):
         for item in result.all():
             await session.delete(item)
 
+        # Flush child deletes before deleting the header: the ORM does not know
+        # the header↔item relationship, so without this the header DELETE can be
+        # emitted first and PostgreSQL rejects it (FK violation). SQLite does not
+        # enforce FKs, which is why unit tests never caught this.
+        await session.flush()
+
         await session.delete(latest)
         await session.commit()
